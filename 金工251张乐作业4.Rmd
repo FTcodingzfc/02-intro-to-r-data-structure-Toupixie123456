@@ -1,0 +1,91 @@
+#data.table 是 R 语言中高性能处理表格型数据的核心扩展包 提升大数据集的处理效率 联系可通过专用函数双向转换 区别data.table内存占比小，速度快，代码简洁，data.frame相反
+```{r setup, include=FALSE}
+m <- mtcars
+df <- as.data.frame(m)
+class(df)
+dt <- as.data.table(m)
+class(dt)
+```
+#2.fread()函数进行导入，支持CSV,TSV格式。fwrite()进行导出
+```{r setup, include=FALSE}
+fwrite(m,"m.csv")
+fread("m.csv")
+head("m.csv",6)
+```
+#3.i代表行筛选，j代表列操作，by代表分组，运行顺序为i，by，j
+```{r setup, include=FALSE}
+n =as.data.table(mtcars)
+x <- n[1:3,vs==1,by=cyl]
+```
+#4.[]
+```{r}
+n[,qsec] + n[,mpg]
+```
+#5.行筛选,逻辑向量或整数向量
+```{r}
+n[1:10]
+```
+#列筛选 ，列名向量或true/false
+```{r}
+n[,.(mpg)]
+```
+#data.frame[,c("mpg","cyl")],可以直接使用
+#6.生成data.table
+```{r}
+n[,.(mpg)]
+```
+#生成向量
+```{r}
+n[,mpg]
+```
+#7. order()进行排序,decreasing改变升序或降序或-变量。i可排序，by不行。筛选和排序可同时实现
+```{r}
+n[order(mpg, decreasing=TRUE,-cyl)]
+n[1:10,order(mpg)]
+```
+#8.用:=, 多列用':='()
+```{r}
+n[,wt_sq:=wt^2]
+n[,':='(vs_sq=vs^2,mpg_sq=mpg^2)]
+```
+#9.分组就是按指定变量将数据拆分，对每组进行相同计算后合并的操作。keyby会自动按分组变量排序，by不排序。求和在j中用sum()，by=.(列,列)
+```{r}
+n[,sum(mpg),by=.(cyl,vs)]
+```
+#10.
+```{r}
+n[cyl>4,sum(mpg),by=.(cyl,vs)]
+n[,cyl>4,by=cyl]
+```
+#11..SD表示by分组后的每组数据。结构为data.table。分组后，每组对应一个.SD数据框
+```{r}
+n[,.SD,by=cyl]
+```
+#12..N表示当前分组的行数，结构为单个数值的向量。分组后，返回每组的行数
+```{r}
+n[,.N,by=cyl]
+```
+#13.chaining为链式操作，将多个数据处理步骤串联执行。
+```{r}
+dt_sx <- n[vs==1&am==1,][,.(mpg_aver=mean(mpg),cyl_aver=mean(cyl))]
+dt_sx
+```
+#14.join dt1[dt2,on=c("var1","var2")],分为内连接和外连接，区别为内链接只保留匹配数据，外连接保留所有数据
+```{r }
+dt1 <- n[cyl==4&gear==3,.(cyl,gear,mpg)]
+dt2 <- n[cyl==4&gear==3,.(cyl,gear,hp)]
+nlj <- dt1[dt2,on=c("cyl","gear"),]
+wlj <- dt1[dt2,on=c("cyl","gear"),nomatch=NA]
+```
+#15.bind要用rbind()函数
+```{r}
+n_plus=n+1
+n_nplus <- rbind(n,n_plus)
+n_nplus[,.N]
+```
+#16.melt宽数据转长数据，cast长数据转宽数据
+```{r}
+dt_melt <- melt(n,id.vars = "gear",meansure.vars=c("mpg","cyl","disp"),variable.name = "x1",value.name = "x2")
+dt_cast <- dcast(dt_melt,gear~x1,value.var = "x2",mean)
+dt_melt
+dt_cast
